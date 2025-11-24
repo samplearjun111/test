@@ -1,0 +1,17 @@
+<!doctype html>
+<html>
+<head><meta charset="utf-8"/><title>Approve Result</title><link rel="stylesheet" href="/style.css"/></head>
+<body>
+  <div class="container">
+    <% if (success) { %>
+      <h1>Grade sent successfully</h1>
+      <p>Response from TalentLMS:</p>
+      <pre><%= JSON.stringify(resp, null, 2) %></pre>
+    <% } else { %>
+      <h1>Failed to send grade</h1>
+      <p>Error: <%= error %></p>
+    <% } %>
+    <p><a href="/review">Back to review</a></p>
+  </div>
+</body>
+</html>

@@ -1,0 +1,33 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8"/>
+  <title>Flagged Submissions - Review</title>
+  <link rel="stylesheet" href="/style.css"/>
+</head>
+<body>
+  <div class="container">
+    <h1>Flagged Submissions (Manual Review)</h1>
+    <% if (!items || items.length === 0) { %>
+      <p>No flagged submissions to review.</p>
+    <% } %>
+    <% items.forEach(function(it){ %>
+      <div class="card">
+        <h2>ID: <%= it.id %> — User: <%= it.user_id %> — Assignment: <%= it.assignment_id %></h2>
+        <p><strong>Submitted:</strong></p>
+        <pre><%= it.submission_text %></pre>
+        <p><strong>Auto Score:</strong> <%= it.result.score %> / <%= it.result.max_score %></p>
+        <p><strong>Flags:</strong> <%= (it.result.flags || []).join(', ') %></p>
+        <form action="/review/approve" method="post">
+          <input type="hidden" name="id" value="<%= it.id %>" />
+          <label>Score (0-100): <input name="score" value="<%= it.result.score %>" /></label><br/>
+          <label>Feedback:<br/>
+            <textarea name="feedback" rows="4" cols="60"><%= it.result.overall_feedback %></textarea>
+          </label><br/>
+          <button type="submit">Approve & Send to TalentLMS</button>
+        </form>
+      </div>
+    <% }) %>
+  </div>
+</body>
+</html>
