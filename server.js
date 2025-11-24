@@ -8,7 +8,8 @@
  * Deploy to Render: npm install && npm start
  */
 import express from "express";
-import fetch from "node-fetch";
+// remove the import line entirely
+// use fetch(...) as-is — Node 18+ provides global fetch
 import bodyParser from "body-parser";
 import multer from "multer";
 import dotenv from "dotenv";
