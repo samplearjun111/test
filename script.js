@@ -1,21 +1,22 @@
 
-document.getElementById('uploadForm').addEventListener('submit', async (e) => {
+ocument.getElementById('uploadForm').addEventListener('submit', async (e) => {
   e.preventDefault();
+
   const file = document.getElementById('fileInput').files[0];
   const params = new URLSearchParams(window.location.search);
   const userId = params.get('user_id');
   const courseId = params.get('course_id');
 
-
   const formData = new FormData();
   formData.append('file', file);
-  formData.append('user_id', userId);
-  formData.append('course_id', courseId);
+
+  // Build backend URL with query params
+  const backendUrl = `https://your-render-app-url.onrender.com/evaluate?user_id=${userId}&course_id=${courseId}`;
 
   document.getElementById('result').innerHTML = '<p class="text-info">Processing...</p>';
 
   try {
-    const response = await fetch('https://test-1-werq.onrender.coml.onrender.com/evaluate', {
+    const response = await fetch(backendUrl, {
       method: 'POST',
       body: formData
     });
@@ -26,7 +27,7 @@ document.getElementById('uploadForm').addEventListener('submit', async (e) => {
       <p><strong>Score:</strong> ${data.evaluation.score}</p>
       <p><strong>Feedback:</strong> ${data.evaluation.feedback}</p>
       <hr>
-      <h5>TalentLMS Update</h5>
+      <h5>TalentLMS Update:</h5>
       <p>Status: ${data.completion_update.status}</p>
     `;
   } catch (error) {
