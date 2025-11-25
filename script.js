@@ -1,5 +1,5 @@
 
-ocument.getElementById('uploadForm').addEventListener('submit', async (e) => {
+document.getElementById('uploadForm').addEventListener('submit', async (e) => {
   e.preventDefault();
 
   const file = document.getElementById('fileInput').files[0];
@@ -10,7 +10,6 @@ ocument.getElementById('uploadForm').addEventListener('submit', async (e) => {
   const formData = new FormData();
   formData.append('file', file);
 
-  // Build backend URL with query params
   const backendUrl = `https://your-render-app-url.onrender.com/evaluate?user_id=${userId}&course_id=${courseId}`;
 
   document.getElementById('result').innerHTML = '<p class="text-info">Processing...</p>';
