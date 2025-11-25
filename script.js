@@ -10,7 +10,7 @@ document.getElementById('uploadForm').addEventListener('submit', async (e) => {
   const formData = new FormData();
   formData.append('file', file);
 
-  const backendUrl = `https://your-render-app-url.onrender.com/evaluate?user_id=${userId}&course_id=${courseId}`;
+  const backendUrl = `https://test-1-werq.onrender.com/evaluate?user_id=${userId}&course_id=${courseId}`;
 
   document.getElementById('result').innerHTML = '<p class="text-info">Processing...</p>';
 
