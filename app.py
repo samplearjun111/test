@@ -54,8 +54,7 @@ def mark_completion_in_talentlms(user_id, course_id):
 @app.route('/evaluate', methods=['POST'])
 def evaluate():
     file = request.files['file']
-    user_id = request.form.get('user_id')
-    course_id = request.form.get('course_id')
+    
 
     with tempfile.NamedTemporaryFile(delete=False) as tmp:
         file.save(tmp.name)
