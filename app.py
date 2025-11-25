@@ -20,19 +20,15 @@ openai.api_key = OPENAI_API_KEY
 def extract_text(file_path):
     if file_path.endswith('.pdf'):
         with pdfplumber.open(file_path) as pdf:
-            return "
-".join(page.extract_text() for page in pdf.pages if page.extract_text())
+            return ".join(page.extract_text() for page in pdf.pages if page.extract_text())"
     elif file_path.endswith('.docx'):
         doc = Document(file_path)
-        return "
-".join([p.text for p in doc.paragraphs])
+        return ".join([p.text for p in doc.paragraphs])"
     else:
         return "Unsupported file type."
 
 def evaluate_text(text):
-    prompt = f"Grade this assignment:
-{text}
-Return JSON with keys: score (0-100) and feedback."
+    prompt = f"Grade this assignment: {text} Return JSON with keys: score (0-100) and feedback."
     response = openai.ChatCompletion.create(
         model="gpt-4",
         messages=[
