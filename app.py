@@ -28,7 +28,7 @@ def extract_text(file_path):
         return "Unsupported file type."
 
 def evaluate_text(text):
-    prompt = f"Grade this assignment: {text} Return JSON with keys: score (0-100) and feedback."
+    prompt = f"You need to evaluate the question Submit a document that explains how to enable LLM fine-tuning. Grade this assignment: {text} Return ONLY JSON with keys: score (0-100) and feedback."
     response = openai.ChatCompletion.create(
         model="gpt-4",
         messages=[
