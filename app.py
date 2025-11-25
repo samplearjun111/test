@@ -1,5 +1,6 @@
 
 from flask import Flask, request, jsonify
+from flask_cors import CORS
 import requests
 import os
 import tempfile
@@ -9,7 +10,7 @@ from docx import Document
 import pdfplumber
 
 app = Flask(__name__)
-
+CORS(app)  # Enable CORS for all routes
 # Load environment variables
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 TALENTLMS_API_KEY = os.getenv("TALENTLMS_API_KEY")
@@ -37,12 +38,16 @@ def evaluate_text(text):
         ]
     )
     content = response['choices'][0]['message']['content']
+    print("OpenAI raw response:", content)
     try:
         return json.loads(content)
     except:
         return {"score": None, "feedback": content}
 
 def mark_completion_in_talentlms(user_id, course_id):
+    
+    if not user_id or not course_id:
+        return {"status": "skipped", "details": "User ID or Course ID missing"}
     url = f"https://{TALENTLMS_DOMAIN}/api/v1/gotocourse/user_id:{user_id},course_id:{course_id}"
     headers = {"Authorization": f"Basic {TALENTLMS_API_KEY}"}
     response = requests.get(url, headers=headers)
@@ -54,14 +59,16 @@ def mark_completion_in_talentlms(user_id, course_id):
 @app.route('/evaluate', methods=['POST'])
 def evaluate():
     file = request.files['file']
-    
+    user_id = request.args.get('user_id')
+    course_id = request.args.get('course_id')
+
 
     with tempfile.NamedTemporaryFile(delete=False) as tmp:
         file.save(tmp.name)
         text = extract_text(tmp.name)
 
     evaluation = evaluate_text(text)
-
+    
     # Mark completion in TalentLMS
     completion_status = mark_completion_in_talentlms(user_id, course_id)
 
