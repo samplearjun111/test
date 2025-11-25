@@ -2,8 +2,10 @@
 document.getElementById('uploadForm').addEventListener('submit', async (e) => {
   e.preventDefault();
   const file = document.getElementById('fileInput').files[0];
-  const userId = document.getElementById('userId').value;
-  const courseId = document.getElementById('courseId').value;
+  const params = new URLSearchParams(window.location.search);
+  const userId = params.get('user_id');
+  const courseId = params.get('course_id');
+
 
   const formData = new FormData();
   formData.append('file', file);
