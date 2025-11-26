@@ -40,7 +40,7 @@ def evaluate_text_with_openai(text):
     prompt = f"Grade this assignment for correctness and clarity. Return JSON with keys: score (0-100) and feedback.\n\nAssignment text:\n{text}"
     try:
         response = openai.ChatCompletion.create(
-            model="gpt-4",
+            model="gpt-4.1-mini",
             messages=[
                 {"role": "system", "content": "You are a helpful grading assistant. Output only valid JSON."},
                 {"role": "user", "content": prompt}
