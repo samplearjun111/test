@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>AI-graded LLM Exam</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f7f7f7;
+      margin: 0;
+      padding: 20px;
+    }
+    .container {
+      max-width: 900px;
+      margin: 0 auto;
+    }
+    h1, h2 {
+      margin-top: 0;
+    }
+    .exam-header {
+      background: #004085;
+      color: #fff;
+      padding: 15px 20px;
+      border-radius: 8px 8px 0 0;
+    }
+    .exam-body {
+      background: #ffffff;
+      padding: 20px;
+      border-radius: 0 0 8px 8px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+    }
+    .meta {
+      font-size: 14px;
+      color: #444;
+      margin-bottom: 15px;
+    }
+    .question {
+      margin-bottom: 20px;
+      padding: 12px 10px;
+      border: 1px solid #ddd;
+      border-radius: 6px;
+      background: #fafafa;
+    }
+    .question-title {
+      font-weight: bold;
+      margin-bottom: 8px;
+    }
+    textarea {
+      width: 100%;
+      min-height: 110px;
+      resize: vertical;
+      font-family: inherit;
+      font-size: 14px;
+      padding: 8px;
+      box-sizing: border-box;
+    }
+    .options {
+      margin-top: 8px;
+    }
+    .options label {
+      display: block;
+      margin-bottom: 4px;
+    }
+    .btn-row {
+      margin-top: 20px;
+      display: flex;
+      gap: 10px;
+      align-items: center;
+    }
+    button {
+      background: #007bff;
+      color: #fff;
+      border: none;
+      padding: 10px 20px;
+      font-size: 15px;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    button:disabled {
+      opacity: 0.6;
+      cursor: default;
+    }
+    #statusMsg {
+      font-size: 14px;
+    }
+    .status-info { color: #0069d9; }
+    .status-error { color: #dc3545; }
+    .status-success { color: #28a745; }
+    #result {
+      margin-top: 20px;
+      padding: 12px;
+      border-radius: 6px;
+      border: 1px solid #ddd;
+      background: #fdfdfd;
+      font-size: 14px;
+      white-space: pre-wrap;
+    }
+  </style>
+
+  <script>
+    // --------------------------
+    // CONFIG
+    // --------------------------
+    const BACKEND_URL = "https://test-1-werq.onrender.com/exam_evaluate";
+    const PASS_THRESHOLD = 70; // make sure this matches SCORM wrapper
+
+    let assignmentId = "default_exam";
+    let examTopic = "LLM Assessment";
+    let submitted = false;
+
+    // --------------------------
+    // Utility: Disable copy/paste + basic cheating controls
+    // --------------------------
+    document.addEventListener('copy', e => e.preventDefault());
+    document.addEventListener('paste', e => e.preventDefault());
+    document.addEventListener('cut', e => e.preventDefault());
+
+    document.addEventListener('contextmenu', e => e.preventDefault());
+
+    document.addEventListener('keydown', (e) => {
+      // Block F12 and Ctrl+Shift+I/J
+      if (
+        e.key === "F12" ||
+        (e.ctrlKey && e.shiftKey && (e.key === "I" || e.key === "J"))
+      ) {
+        e.preventDefault();
+        e.stopPropagation();
+      }
+    });
+
+    // Window/tab switch detection
+    document.addEventListener("visibilitychange", () => {
+      if (document.hidden && !submitted) {
+        alert("Window switch detected. Your exam will be submitted now.");
+        submitExam();
+      }
+    });
+
+    // --------------------------
+    // On load: read URL params and show topic
+    // --------------------------
+    document.addEventListener("DOMContentLoaded", () => {
+      const params = new URLSearchParams(window.location.search);
+      assignmentId = params.get("assignment_id") || "default_exam";
+      examTopic = params.get("topic") || "LLM Assessment";
+
+      document.getElementById("topicSpan").textContent = examTopic;
+      document.getElementById("thresholdSpan").textContent = PASS_THRESHOLD;
+    });
+
+    // --------------------------
+    // Collect answers from form
+    // --------------------------
+    function collectAnswers() {
+      const answers = {};
+
+      // Open-ended Q1–Q5
+      answers.q1 = document.getElementById("q1").value.trim();
+      answers.q2 = document.getElementById("q2").value.trim();
+      answers.q3 = document.getElementById("q3").value.trim();
+      answers.q4 = document.getElementById("q4").value.trim();
+      answers.q5 = document.getElementById("q5").value.trim();
+
+      // MCQ Q6–Q10
+      for (let i = 6; i <= 10; i++) {
+        const sel = document.querySelector(`input[name="q${i}"]:checked`);
+        answers[`q${i}`] = sel ? sel.value : "";
+      }
+
+      return answers;
+    }
+
+    // --------------------------
+    // Lock inputs after submission
+    // --------------------------
+    function lockExamUI() {
+      const textareas = document.querySelectorAll("textarea");
+      textareas.forEach(t => t.setAttribute("readonly", "readonly"));
+
+      const radios = document.querySelectorAll('input[type="radio"]');
+      radios.forEach(r => r.setAttribute("disabled", "disabled"));
+
+      document.getElementById("submitBtn").disabled = true;
+    }
+
+    // --------------------------
+    // Submit exam
+    // --------------------------
+    async function submitExam() {
+      if (submitted) return;
+      submitted = true;
+      lockExamUI();
+
+      const statusMsg = document.getElementById("statusMsg");
+      statusMsg.className = "status-info";
+      statusMsg.textContent = "Submitting and grading your exam...";
+
+      const answers = collectAnswers();
+
+      const payload = {
+        assignmentId: assignmentId,
+        topic: examTopic,
+        answers: answers
+      };
+
+      try {
+        const resp = await fetch(BACKEND_URL, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload)
+        });
+
+        const text = await resp.text();
+        let data;
+        try {
+          data = JSON.parse(text);
+        } catch (e) {
+          statusMsg.className = "status-error";
+          statusMsg.textContent = "Grading failed (invalid server response).";
+          document.getElementById("result").textContent =
+            "Raw response:\n" + text;
+          return;
+        }
+
+        if (!resp.ok || data.error) {
+          statusMsg.className = "status-error";
+          statusMsg.textContent = "Grading failed. See details below.";
+          document.getElementById("result").textContent =
+            JSON.stringify(data, null, 2);
+          return;
+        }
+
+        const totalScore = data.totalScore ?? 0;
+        const passed = totalScore >= PASS_THRESHOLD;
+        const overallFeedback = data.overallFeedback || "";
+        const perQuestion = data.perQuestion || {};
+
+        statusMsg.className = passed ? "status-success" : "status-error";
+        statusMsg.textContent = passed
+          ? `Exam passed with score ${totalScore}.`
+          : `Exam not passed. Score: ${totalScore}.`;
+
+        // Show a simple breakdown
+        let breakdown = `Total Score: ${totalScore}\nPass Threshold: ${PASS_THRESHOLD}\n\n`;
+        breakdown += "Per-question feedback:\n";
+        for (const [qid, info] of Object.entries(perQuestion)) {
+          breakdown += `- ${qid}: score=${info.score}, feedback=${info.feedback}\n`;
+        }
+        breakdown += `\nOverall feedback:\n${overallFeedback}`;
+
+        document.getElementById("result").textContent = breakdown;
+
+        // Notify SCORM wrapper
+        try {
+          window.parent.postMessage(
+            {
+              type: "aiExamScore",
+              totalScore: totalScore,
+              pass: passed
+            },
+            "*"
+          );
+        } catch (e) {
+          console.error("Failed to postMessage to parent:", e);
+        }
+
+      } catch (err) {
+        console.error(err);
+        statusMsg.className = "status-error";
+        statusMsg.textContent = "Error submitting exam. Please contact support.";
+        document.getElementById("result").textContent = String(err);
+      }
+    }
+  </script>
+</head>
+
+<body>
+  <div class="container">
+    <div class="exam-header">
+      <h1>AI-graded LLM Exam</h1>
+      <div style="font-size: 14px;">
+        Topic: <span id="topicSpan"></span><br>
+        Passing threshold: <span id="thresholdSpan"></span>/100
+      </div>
+    </div>
+
+    <div class="exam-body">
+      <p class="meta">
+        Please answer the following questions. Do not copy-paste content,
+        and do not switch windows or tabs during the exam. Your responses
+        will be graded automatically by an AI model.
+      </p>
+
+      <!-- Open-ended questions 1–5 -->
+      <div class="question">
+        <div class="question-title">Q1. In your own words, what is a Large Language Model (LLM)?</div>
+        <textarea id="q1"
+          onpaste="return false;" oncopy="return false;" oncut="return false;"></textarea>
+      </div>
+
+      <div class="question">
+        <div class="question-title">Q2. Explain the difference between pre-training and fine-tuning for LLMs.</div>
+        <textarea id="q2"
+          onpaste="return false;" oncopy="return false;" oncut="return false;"></textarea>
+      </div>
+
+      <div class="question">
+        <div class="question-title">Q3. What is an embedding, and why is it useful in LLM-based systems?</div>
+        <textarea id="q3"
+          onpaste="return false;" oncopy="return false;" oncut="return false;"></textarea>
+      </div>
+
+      <div class="question">
+        <div class="question-title">Q4. Describe what Retrieval-Augmented Generation (RAG) is and when you would use it.</div>
+        <textarea id="q4"
+          onpaste="return false;" oncopy="return false;" oncut="return false;"></textarea>
+      </div>
+
+      <div class="question">
+        <div class="question-title">Q5. What are some risks or limitations of using LLMs in production applications?</div>
+        <textarea id="q5"
+          onpaste="return false;" oncopy="return false;" oncut="return false;"></textarea>
+      </div>
+
+      <!-- MCQ 6–10 -->
+      <div class="question">
+        <div class="question-title">Q6. Which of the following best describes "parameter-efficient fine-tuning" (PEFT)?</div>
+        <div class="options">
+          <label><input type="radio" name="q6" value="update_all_parameters">
+            Updating all weights of the base model during fine-tuning.</label>
+          <label><input type="radio" name="q6" value="update_small_subset">
+            Updating only a small subset of parameters or additional adapter layers.</label>
+          <label><input type="radio" name="q6" value="no_training">
+            Using the model without any training or adaptation.</label>
+        </div>
+      </div>
+
+      <div class="question">
+        <div class="question-title">Q7. In a typical RAG pipeline, which two main components are combined?</div>
+        <div class="options">
+          <label><input type="radio" name="q7" value="generator_only">
+            A generator model only.</label>
+          <label><input type="radio" name="q7" value="retriever_and_generator">
+            A retriever over a knowledge base and a generator model.</label>
+          <label><input type="radio" name="q7" value="classifier_and_cluster">
+            A classifier and a clustering algorithm.</label>
+        </div>
+      </div>
+
+      <div class="question">
+        <div class="question-title">Q8. What does "token" usually represent in the context of LLMs?</div>
+        <div class="options">
+          <label><input type="radio" name="q8" value="entire_paragraph">
+            An entire paragraph of text.</label>
+          <label><input type="radio" name="q8" value="subword_unit">
+            A basic unit such as a word or sub-word piece.</label>
+          <label><input type="radio" name="q8" value="full_document">
+            A full document or webpage.</label>
+        </div>
+      </div>
+
+      <div class="question">
+        <div class="question-title">Q9. Which practice helps reduce hallucinations in an LLM-based system?</div>
+        <div class="options">
+          <label><input type="radio" name="q9" value="longer_prompts_only">
+            Using longer prompts with no external data.</label>
+          <label><input type="radio" name="q9" value="retrieval_grounding">
+            Grounding responses in retrieved, trusted external knowledge.</label>
+          <label><input type="radio" name="q9" value="more_temperature">
+            Always increasing the temperature parameter.</label>
+        </div>
+      </div>
+
+      <div class="question">
+        <div class="question-title">Q10. Which of the following is a common metric for evaluating LLM-based question answering?</div>
+        <div class="options">
+          <label><input type="radio" name="q10" value="accuracy">
+            Exact-match accuracy on reference answers.</label>
+          <label><input type="radio" name="q10" value="page_load">
+            Average page load time of the UI.</label>
+          <label><input type="radio" name="q10" value="disk_usage">
+            Disk usage on the server hosting the model.</label>
+        </div>
+      </div>
+
+      <div class="btn-row">
+        <button id="submitBtn" type="button" onclick="submitExam()">Submit Exam</button>
+        <span id="statusMsg" class="status-info"></span>
+      </div>
+
+      <div id="result"></div>
+    </div>
+  </div>
+</body>
+</html>
